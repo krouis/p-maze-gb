@@ -1,0 +1,26 @@
+# =============================================================================
+# Pixel Maze GB
+# File:        .gitignore
+# Description: Files excluded from version control.
+#
+# Copyright (C) 2026 Oasis Loop Labs
+#
+# SPDX-License-Identifier: GPL-2.0-only
+# =============================================================================
+
+build/
+release/
+test-results/
+*.gb
+*.sym
+*.map
+
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+.venv/
+venv/
+
+.claude/settings.local.json

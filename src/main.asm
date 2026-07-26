@@ -43,17 +43,11 @@ Init::
     di
     ld sp, $FFFE ; Set stack pointer
 
-    ; Store GBC detection flag (A contains $11 or $01 on GBC/GBA)
-    cp $11
-    jr z, .gbc
-    cp $01
-    jr z, .gbc
-    ld a, 0
-    jr .setMode
-.gbc:
-    ld a, 1
-.setMode:
-    ld [wIsGBC], a
+    ; Save the boot ROM's hardware-ID byte (in A) in E. wIsGBC lives inside
+    ; WRAM_START..WRAM_START+$1000, which we're about to zero below, so the
+    ; detection flag must be computed and stored *after* that clear, not
+    ; before -- otherwise the clear loop immediately wipes it back to 0.
+    ld e, a
 
     ; Disable boot ROM mapping to expose cartridge interrupt vectors
     ld a, 1
@@ -78,6 +72,19 @@ Init::
     inc hl
     dec c
     jr nz, .clearHram
+
+    ; Store GBC detection flag now that WRAM has been cleared. The boot ROM
+    ; leaves $11 in A on CGB/AGB hardware, $01 on DMG/SGB, and $FF on
+    ; MGB/SGB2 -- only $11 means color hardware is present.
+    ld a, e
+    cp $11
+    jr nz, .dmg
+    ld a, 1
+    jr .setMode
+.dmg:
+    ld a, 0
+.setMode:
+    ld [wIsGBC], a
 
     ; Initialize OAM DMA routine in HRAM
     call DMA_Init

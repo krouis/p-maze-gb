@@ -30,20 +30,13 @@ def parse_symbols(sym_path):
                 symbols[name] = addr
     return symbols
 
-def run_boot_smoke_test():
-    print("=== SameBoy Headless Smoke Test ===")
+# SameBoy GB_model_t values (Core/model.h at the pinned SameBoy v1.0.3 tag).
+# GB_MODEL_FAMILY_MASK is 0xF00; the low byte selects the specific hardware
+# revision within a family (DMG/MGB/CGB).
+GB_MODEL_DMG_B = 0x0002  # Game Boy (DMG), revision B
 
-    # 1. Load symbols
-    sym_path = "build/p-maze-gb.sym"
-    symbols = parse_symbols(sym_path)
-    if not symbols:
-        raise AssertionError(f"Symbol file '{sym_path}' not found or empty.")
 
-    print(f"Loaded {len(symbols)} symbols.")
-    wGameState_addr = symbols.get("wGameState")
-    print(f"wGameState address: 0x{wGameState_addr:04X}")
-
-    # 2. Load SameBoy DLL and glibc
+def _load_sameboy():
     try:
         ctypes.CDLL("/usr/lib/x86_64-linux-gnu/libmvec.so.1", mode=ctypes.RTLD_GLOBAL)
         ctypes.CDLL("libm.so.6", mode=ctypes.RTLD_GLOBAL)
@@ -57,7 +50,6 @@ def run_boot_smoke_test():
     except Exception:
         libc = ctypes.CDLL(None)
 
-    # Setup function prototypes
     lib.GB_allocation_size.argtypes = [ctypes.c_int]
     lib.GB_allocation_size.restype = ctypes.c_size_t
 
@@ -79,12 +71,31 @@ def run_boot_smoke_test():
     libc.malloc.restype = ctypes.c_void_p
     libc.free.argtypes = [ctypes.c_void_p]
 
+    return lib, libc
+
+
+def run_boot_smoke_test(model=12, model_label="model 12 (legacy default)", check_gbc_flag=None):
+    print("=== SameBoy Headless Smoke Test ===")
+
+    # 1. Load symbols
+    sym_path = "build/p-maze-gb.sym"
+    symbols = parse_symbols(sym_path)
+    if not symbols:
+        raise AssertionError(f"Symbol file '{sym_path}' not found or empty.")
+
+    print(f"Loaded {len(symbols)} symbols.")
+    wGameState_addr = symbols.get("wGameState")
+    wIsGBC_addr = symbols.get("wIsGBC")
+    print(f"wGameState address: 0x{wGameState_addr:04X}")
+
+    # 2. Load SameBoy DLL and glibc
+    lib, libc = _load_sameboy()
+
     # 3. Get allocation size and allocate the Game Boy instance and screen buffer
     # via libc.malloc (not ctypes.create_string_buffer/byref) so SameBoy has a
     # real, stable heap pointer to render into across repeated GB_run_frame calls.
-    model_cgb = 12  # CGB_E
-    size = lib.GB_allocation_size(model_cgb)
-    print(f"Required allocation size for model {model_cgb}: {size} bytes")
+    size = lib.GB_allocation_size(model)
+    print(f"Required allocation size for {model_label}: {size} bytes")
 
     gb = libc.malloc(size)
     assert gb is not None, "Failed to allocate memory for Game Boy instance"
@@ -94,7 +105,7 @@ def run_boot_smoke_test():
 
     try:
         # 4. Initialize Game Boy
-        lib.GB_init(gb, model_cgb)
+        lib.GB_init(gb, model)
         print("Game Boy initialized.")
 
         # SameBoy renders into this buffer during GB_run_frame; without it,
@@ -114,6 +125,14 @@ def run_boot_smoke_test():
         state = lib.GB_safe_read_memory(gb, wGameState_addr)
         print(f"Game State after 60 frames: {state} (Expected 1 for STATE_TITLE)")
         assert state == 1, f"Expected STATE_TITLE (1), got {state}"
+
+        if check_gbc_flag is not None:
+            is_gbc = lib.GB_safe_read_memory(gb, wIsGBC_addr)
+            print(f"wIsGBC: {is_gbc} (Expected {int(check_gbc_flag)})")
+            assert is_gbc == int(check_gbc_flag), (
+                f"Expected wIsGBC == {int(check_gbc_flag)} for {model_label}, got {is_gbc}"
+            )
+
         print("SUCCESS: ROM booted to title screen successfully!")
     finally:
         libc.free(gb)
@@ -124,10 +143,25 @@ def test_rom_boot_smoke():
     run_boot_smoke_test()
 
 
+def test_rom_boot_smoke_dmg():
+    # Verifies the ROM actually boots on real DMG hardware (not just CGB),
+    # per ADR 0002's dual-compatibility requirement: the boot-time GBC
+    # detection (main.asm's check of register A) must land on the DMG path
+    # and reach STATE_TITLE without any GBC-only setup.
+    run_boot_smoke_test(
+        model=GB_MODEL_DMG_B,
+        model_label="GB_MODEL_DMG_B",
+        check_gbc_flag=False,
+    )
+
+
 if __name__ == "__main__":
     import sys
     try:
         run_boot_smoke_test()
+        run_boot_smoke_test(
+            model=GB_MODEL_DMG_B, model_label="GB_MODEL_DMG_B", check_gbc_flag=False
+        )
         sys.exit(0)
     except AssertionError as e:
         print(f"FAILURE: {e}")

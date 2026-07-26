@@ -285,7 +285,7 @@ PrepareLevel:
     call Player_Draw
 
     ; 9. Enable LCD
-    ld a, LCDCF_ON | LCDCF_BGON | LCDCF_OBJON
+    ld a, LCDCF_ON | LCDCF_BGON | LCDCF_OBJON | LCDCF_TILE_SEL
     call LCD_Enable
 
     ; 10. Transition to Play state

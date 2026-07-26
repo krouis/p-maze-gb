@@ -140,7 +140,7 @@ Title_Init::
 
 .lcdOn:
     ; 6. Turn LCD back on (Background + Sprites enabled)
-    ld a, LCDCF_ON | LCDCF_BGON | LCDCF_OBJON
+    ld a, LCDCF_ON | LCDCF_BGON | LCDCF_OBJON | LCDCF_TILE_SEL
     call LCD_Enable
     
     ; Clear Shadow OAM to hide sprites during title

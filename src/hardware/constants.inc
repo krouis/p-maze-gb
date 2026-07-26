@@ -100,6 +100,7 @@ DEF IEF_JOYPAD      EQU 1 << 4
 DEF LCDCF_OFF       EQU 0
 DEF LCDCF_ON        EQU 1 << 7
 DEF LCDCF_WINON     EQU 1 << 5
+DEF LCDCF_TILE_SEL  EQU 1 << 4 ; BG/window tile data: 0=$8800 signed, 1=$8000 unsigned
 DEF LCDCF_OBJ16     EQU 1 << 2
 DEF LCDCF_OBJON     EQU 1 << 1
 DEF LCDCF_BGON      EQU 1 << 0

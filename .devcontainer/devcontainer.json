@@ -1,0 +1,24 @@
+{
+  "name": "Pixel Maze GB Dev Container",
+  "build": {
+    "dockerfile": "../tools/container/Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspace",
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind"
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": [
+        "hollower.rgbds-z80",
+        "ms-python.python",
+        "charliermarsh.ruff"
+      ]
+    }
+  },
+  "remoteUser": "root"
+}

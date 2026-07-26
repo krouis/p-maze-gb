@@ -1,0 +1,18 @@
+# =============================================================================
+# Pixel Maze GB
+# File:        tools/container/checksums.txt
+# Description: Expected SHA-256 checksums for verified container downloads.
+#
+# Copyright (C) 2026 Oasis Loop Labs
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation; version 2 of the License.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+# =============================================================================
+
+b3e2bae43e679492efd6f128dc6e951dd4b1b9ef75905df937a9b9fa67bcfaf2  rgbds-0.7.0.tar.gz
+7da338458e19396cb43dfe1a4df4555882ebea92540565dc993c1c706c981dc3  sameboy-1.0.3.tar.gz
+a24c766933490b11fb7c9b62f937035d41af3bf5561b617b4c86345958093c83  binjgb-0.1.11.tar.gz
+8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  actionlint_1.7.12_linux_amd64.tar.gz

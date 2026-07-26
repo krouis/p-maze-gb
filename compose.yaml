@@ -1,0 +1,41 @@
+# =============================================================================
+# Pixel Maze GB
+# File:        compose.yaml
+# Description: Docker Compose configuration for dev container services.
+#
+# Copyright (C) 2026 Oasis Loop Labs
+#
+# SPDX-License-Identifier: GPL-2.0-only
+# =============================================================================
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: tools/container/Dockerfile
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    user: "${UID:-1000}:${GID:-1000}"
+
+  ci:
+    build:
+      context: .
+      dockerfile: tools/container/Dockerfile
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    user: "${UID:-1000}:${GID:-1000}"
+    command: make check
+
+  shell:
+    build:
+      context: .
+      dockerfile: tools/container/Dockerfile
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    user: "${UID:-1000}:${GID:-1000}"
+    stdin_open: true
+    tty: true
+    entrypoint: /bin/bash

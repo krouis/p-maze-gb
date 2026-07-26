@@ -1,0 +1,27 @@
+# =============================================================================
+# Pixel Maze GB
+# File:        .dockerignore
+# Description: Files ignored during Docker build context preparation.
+#
+# Copyright (C) 2026 Oasis Loop Labs
+#
+# SPDX-License-Identifier: GPL-2.0-only
+# =============================================================================
+
+.git
+.github
+build/
+test-results/
+screenshots/
+*.gb
+*.sym
+*.map
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.devcontainer/
+docs/

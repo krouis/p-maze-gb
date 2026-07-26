@@ -1,0 +1,118 @@
+#!/bin/sh
+# =============================================================================
+# Pixel Maze GB
+# File:        dev
+# Description: Host-side wrapper script to invoke commands inside the Docker
+#              development container.
+#
+# Copyright (C) 2026 Oasis Loop Labs
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation; version 2 of the License.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+# =============================================================================
+
+set -eu
+
+IMAGE_NAME="p-maze-gb-dev"
+CONTAINER_TAG="latest"
+
+# Resolve repository root directory
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Verify Docker is available
+if ! command -v docker >/dev/null 2>&1; then
+    echo "Error: docker command not found. Please install Docker." >&2
+    exit 1
+fi
+
+build_image() {
+    echo "Building development container image (${IMAGE_NAME}:${CONTAINER_TAG})..."
+    docker build --tag "${IMAGE_NAME}:${CONTAINER_TAG}" \
+        --file tools/container/Dockerfile .
+}
+
+# Check if image exists, build if not
+if ! docker image inspect "${IMAGE_NAME}:${CONTAINER_TAG}" >/dev/null 2>&1; then
+    build_image
+fi
+
+# Print version info from versions.env
+print_versions() {
+    echo "Pinned tool versions inside container:"
+    if [ -f tools/container/versions.env ]; then
+        grep -v '^#' tools/container/versions.env | grep -v '^$'
+    else
+        echo "Error: versions.env not found!" >&2
+        exit 1
+    fi
+    echo ""
+    echo "Actual versions running in container:"
+    docker run --rm "${IMAGE_NAME}:${CONTAINER_TAG}" rgbasm --version
+    docker run --rm "${IMAGE_NAME}:${CONTAINER_TAG}" python3 --version
+}
+
+# Run command inside container with current UID/GID to preserve file ownership
+run_container() {
+    docker run --rm \
+        --user "$(id -u):$(id -g)" \
+        --volume "$PWD:/workspace" \
+        --workdir /workspace \
+        "${IMAGE_NAME}:${CONTAINER_TAG}" \
+        "$@"
+}
+
+run_container_interactive() {
+    docker run --rm -it \
+        --user "$(id -u):$(id -g)" \
+        --volume "$PWD:/workspace" \
+        --workdir /workspace \
+        "${IMAGE_NAME}:${CONTAINER_TAG}" \
+        "$@"
+}
+
+# Parse command argument
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 {build|test|check|gameplay|shell|clean|rebuild-image|versions|release} [args...]"
+    exit 1
+fi
+
+CMD="$1"
+shift
+
+case "$CMD" in
+    build)
+        run_container make all "$@"
+        ;;
+    test)
+        run_container make test "$@"
+        ;;
+    check)
+        run_container make check "$@"
+        ;;
+    gameplay)
+        run_container make test-gameplay "$@"
+        ;;
+    clean)
+        run_container make clean "$@"
+        ;;
+    rebuild-image)
+        build_image
+        ;;
+    versions)
+        print_versions
+        ;;
+    release)
+        run_container make release "$@"
+        ;;
+    shell)
+        run_container_interactive bash "$@"
+        ;;
+    *)
+        # Forward arbitrary commands directly if user passes them
+        run_container "$CMD" "$@"
+        ;;
+esac

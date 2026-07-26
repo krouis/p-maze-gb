@@ -1,0 +1,20 @@
+# =============================================================================
+# Pixel Maze GB
+# File:        tools/container/requirements.txt
+# Description: Pinned Python requirements for test runners and graphics conversion.
+#
+# Copyright (C) 2026 Oasis Loop Labs
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation; version 2 of the License.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+# =============================================================================
+
+pytest==8.2.2
+iniconfig==2.0.0
+packaging==24.0
+pluggy==1.5.0
+pillow==10.3.0
+numpy==1.26.4

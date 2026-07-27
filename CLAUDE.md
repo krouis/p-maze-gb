@@ -119,15 +119,36 @@ this convention for any new routine.
 real WRAM globals declared in `wram.asm` specifically so the Python test harness can
 force a deterministic seed and assert on gameplay progress — they are not debug-only/
 stripped in release builds. When editing gameplay state, keep the symbol names in
-`wram.asm` stable, since `tests/test_gameplay.py` and `tests/test_rom_boot.py` resolve
-WRAM addresses by parsing `build/p-maze-gb.sym` for these exact names (e.g. `wGameState`,
-`wPlayerX/Y`, `wExitX/Y`, `wMazeWidth/Height`, `wMazeData`).
+`wram.asm` stable, since `tests/test_gameplay.py`, `tests/test_rom_boot.py`, and
+`tests/test_endurance.py` all resolve WRAM addresses by parsing `build/p-maze-gb.sym` for
+these exact names (e.g. `wGameState`, `wPlayerX/Y`, `wExitX/Y`, `wMazeWidth/Height`,
+`wMazeData`).
 
 ### Testing approach
 
-Both test files load `/opt/sameboy/lib/libsameboy.so` directly via `ctypes` (no PyBoy or
-similar wrapper), run frames with `GB_run_frame`, and read/write memory with
-`GB_safe_read_memory`/`GB_write_memory`. `test_gameplay.py` additionally BFS-solves the
-maze in Python from the raw `wMazeData` bytes and drives the emulator through the solved
-path, asserting `wPlayerX/Y` matches expected coordinates after each move and that the
-game reaches `STATE_LEVEL_COMPLETE`.
+`test_rom_boot.py`, `test_gameplay.py`, and `test_endurance.py` load
+`/opt/sameboy/lib/libsameboy.so` directly via `ctypes` (no PyBoy or similar wrapper), run
+frames with `GB_run_frame`, and read/write memory with `GB_safe_read_memory`/
+`GB_write_memory`. `test_gameplay.py` BFS-solves one fixed-seed maze in Python from the
+raw `wMazeData` bytes and drives the emulator through the solved path, asserting
+`wPlayerX/Y` matches expected coordinates after each move and that the game reaches
+`STATE_LEVEL_COMPLETE`. `test_endurance.py` repeats that same solve-and-drive loop across
+20 consecutive levels in one boot (sizes ramp 3x3 up through the 9x8 cap) using bounded
+polling timeouts instead of fixed frame counts, so a broken state transition fails fast
+instead of hanging. `test_rom_boot.py` additionally covers real DMG (`GB_MODEL_DMG_B`)
+and real GBC (`GB_MODEL_CGB_E` + SameBoy's own non-proprietary `cgb_boot.bin`, loaded via
+`GB_load_boot_rom`) boot paths, asserting `wIsGBC` lands correctly for each.
+
+All SameBoy-backed tests explicitly disable joypad-bounce simulation
+(`GB_set_emulate_joypad_bouncing(gb, False)`) — it's on by default and makes single-frame
+button presses nondeterministic, which contradicts ADR 0004's "100% deterministic input
+injection" claim and makes a dropped tap indistinguishable from a real bug.
+
+`test_binjgb_smoke.py` is the secondary-emulator check from ADR 0004: it shells out to
+`binjgb-tester` (not a shared library, unlike SameBoy) to capture a real screenshot and
+asserts it isn't a blank/uniform frame — this is what originally caught the LCDC-bit-4
+(BG tile data select) bug where every background tile rendered blank.
+
+CI (`.github/workflows/ci.yml`) runs the full suite inside the same dev container on every
+push/PR, verifies `make reproducible`, uploads the ROM as an artifact, and publishes the
+dev image to GHCR on `main`.

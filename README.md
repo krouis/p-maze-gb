@@ -1,5 +1,7 @@
 # Pixel Maze GB
 
+[![CI](https://github.com/krouis/p-maze-gb/actions/workflows/ci.yml/badge.svg)](https://github.com/krouis/p-maze-gb/actions/workflows/ci.yml)
+
 A peaceful maze game for the original Game Boy (DMG) and Game Boy Color (GBC),
 by **Oasis Loop Labs**.
 
@@ -42,7 +44,7 @@ owned by you, not root).
 | Command | Description |
 |---|---|
 | `./dev build` | Compile `build/p-maze-gb.gb` |
-| `./dev test` | Run the pytest suite (ROM boot + solved-maze gameplay test) |
+| `./dev test` | Run the full pytest suite (boot smokes, gameplay solve, binjgb visual smoke, endurance) |
 | `./dev gameplay` | Same as `test`, but verbose (`pytest -s`) |
 | `./dev check` | Build + run the test suite |
 | `./dev shell` | Interactive shell inside the dev container |
@@ -53,6 +55,24 @@ owned by you, not root).
 
 See [`docs/container-development.md`](docs/container-development.md) for
 details on the container setup, file ownership, and offline verification.
+
+## CI/CD
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) builds the ROM inside
+the same dev container described above (no separate CI-only toolchain), on
+every push to `main` and every pull request:
+
+- container toolchain check, `actionlint`/`shellcheck` linting
+- ROM build
+- unit tests (ROM boot smoke, DMG/GBC hardware detection, gameplay solve,
+  binjgb secondary-emulator visual smoke)
+- non-regression tests (20-level endurance run)
+- reproducible-build verification (`make reproducible`)
+- ROM/`.sym`/`.map` uploaded as a workflow artifact
+
+On pushes to `main` only, a second job publishes the dev container image to
+`ghcr.io/krouis/p-maze-gb-dev` (tagged `latest` and by commit SHA), gated on
+the first job passing.
 
 ## Hardware targets
 
@@ -82,13 +102,16 @@ working in the codebase.
 ## Current status / limitations
 
 - Gameplay (title screen, procedural maze generation, movement, collision,
-  pause, level progression) is implemented and covered by an emulator-driven
-  test that solves a real generated maze and drives it via simulated D-pad
-  input.
+  pause, level progression) is implemented and covered by emulator-driven
+  tests (SameBoy and binjgb) that solve real generated mazes and drive them
+  via simulated D-pad input, including a 20-level endurance run.
 - Audio is not implemented yet.
-- Test coverage is currently one fixed-seed maze; broader property-based
-  maze tests (connectivity/solvability across many seeds), an endurance test
-  across many consecutive levels, and screenshot-based visual regression
-  tests do not exist yet.
-- There is no CI workflow configured yet — `./dev check` must currently be
-  run manually.
+- The maze exit is consistently placed only 2-3 cells from the start
+  regardless of maze size, including at the 9x8 maximum size — the "farthest
+  reachable cell" distance-propagation logic in `maze_generate.asm` doesn't
+  appear to pick a genuinely distant cell. Mazes are still always solvable
+  and the exit always differs from the start; this is a maze-quality issue,
+  not a correctness/hang risk.
+- Test coverage still uses a single fixed seed; broader property-based maze
+  tests (connectivity/solvability across many random seeds) and
+  screenshot-based visual regression tests don't exist yet.

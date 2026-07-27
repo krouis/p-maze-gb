@@ -107,8 +107,9 @@ Maze_Generate::
     or a
     jr z, .checkEast
     dec c
-    call IsCellVisited
-    inc c
+    call IsCellVisited ; A = 0 if unvisited, nonzero if visited/OOB
+    inc c              ; restores C, but inc/dec clobber Z -- doesn't touch A
+    or a               ; re-derive Z from A (unaffected by the restore above)
     jr nz, .checkEast ; Visited
     ; Add North neighbor
     ld a, c
@@ -125,8 +126,9 @@ Maze_Generate::
     cp b
     jr z, .checkSouth
     inc b
-    call IsCellVisited
-    dec b
+    call IsCellVisited ; A = 0 if unvisited, nonzero if visited/OOB
+    dec b              ; restores B, but inc/dec clobber Z -- doesn't touch A
+    or a               ; re-derive Z from A (unaffected by the restore above)
     jr nz, .checkSouth ; Visited
     ; Add East neighbor
     ld a, c
@@ -144,8 +146,9 @@ Maze_Generate::
     cp c
     jr z, .checkWest
     inc c
-    call IsCellVisited
-    dec c
+    call IsCellVisited ; A = 0 if unvisited, nonzero if visited/OOB
+    dec c              ; restores C, but inc/dec clobber Z -- doesn't touch A
+    or a               ; re-derive Z from A (unaffected by the restore above)
     jr nz, .checkWest ; Visited
     ; Add South neighbor
     ld a, c
@@ -161,8 +164,9 @@ Maze_Generate::
     or a
     jr z, .neighborsCheckDone
     dec b
-    call IsCellVisited
-    inc b
+    call IsCellVisited ; A = 0 if unvisited, nonzero if visited/OOB
+    inc b              ; restores B, but inc/dec clobber Z -- doesn't touch A
+    or a               ; re-derive Z from A (unaffected by the restore above)
     jr nz, .neighborsCheckDone ; Visited
     ; Add West neighbor
     ld a, c
@@ -180,78 +184,47 @@ Maze_Generate::
     jp z, .backtrack
 
     ; We have unvisited neighbors!
-    ; Choose one randomly
+    ; Choose one randomly. Current cell (B, C) must survive this section
+    ; untouched, so the chosen index is stashed on the stack (via AF) between
+    ; the two lookups instead of a register -- BC holds current X/Y and is
+    ; read again right after this block to push the current cell.
     call RNG_Range ; A = chosen index (0 to count-1)
-    
-    ; Retrieve chosen neighbor
-    ld hl, $FFB1 ; Coords start
+    push af        ; Save chosen index
+
+    ; Retrieve chosen neighbor coord: $FFB1 + index
+    ld hl, $FFB1
     add l
     ld l, a
     ld a, [hl]
     ld e, a        ; E = chosen neighbor coord (Y<<4 | X)
-    
-    ; Retrieve chosen direction
-    ld hl, $FFB5 ; Dirs start
-    ld a, l
-    ; Add index
-    ldh a, [$FFB0]
-    ; Wait, we want the index we chose! The index is in the register C? No, chosen index was returned in A!
-    ; Let's save chosen index in C.
-    
-    ; Let's rewrite the neighbor selection cleanly:
-    ; A = chosen index
-    ld c, a        ; C = chosen index
-    
-    ; Coords target: $FFB1 + C
-    ld hl, $FFB1
-    ld b, 0
-    add hl, bc
-    ld a, [hl]     ; A = chosen neighbor coord
-    ld e, a        ; E = chosen neighbor coord
-    
-    ; Dirs target: $FFB5 + C
+
+    ; Retrieve chosen direction: $FFB5 + index
+    pop af         ; Restore chosen index
     ld hl, $FFB5
-    add hl, bc
+    add l
+    ld l, a
     ld a, [hl]     ; A = chosen direction (0=N, 1=E, 2=S, 3=W)
     ld d, a        ; D = chosen direction
 
-    ; Restore current X and Y into BC (B=X, C=Y)
-    ; Wait, we still have current X, Y in B, C!
+    ; Current X and Y are still in B, C untouched.
     
-    ; 1. Push current cell onto generator stack
-    ld hl, wMazeStack
+    ; 1. Push current cell onto generator stack: wMazeStack[wMazeStackPtr] = Y<<4|X.
+    ; Must not touch D/E (chosen neighbor coord/direction, needed below) or B/C
+    ; (current X/Y, needed below) -- only A and HL.
     ld a, [wMazeStackPtr]
-    ld h, 0
+    ld hl, wMazeStack
+    add l
     ld l, a
+    ld a, h
+    adc 0
+    ld h, a
     ld a, c
     swap a
     or b           ; A = Y<<4 | X (current cell)
-    push hl
-    ld hl, wMazeStack
-    add l
-    ld l, a
-    ld a, h
-    adc 0
-    ld h, a
-    pop de
-    ; Wait, let's write standard array indexing:
-    ; wMazeStack[wMazeStackPtr] = Y<<4 | X
-    push de
-    ld a, [wMazeStackPtr]
-    ld hl, wMazeStack
-    add l
-    ld l, a
-    ld a, h
-    adc 0
-    ld h, a
-    ld a, c
-    swap a
-    or b           ; A = Y<<4 | X
     ld [hl], a
     ; Increment stack pointer
     ld hl, wMazeStackPtr
     inc [hl]
-    pop de
 
     ; 2. Remove walls between current cell (B, C) and neighbor cell E (NY<<4 | NX)
     ; D = direction taken (0=N, 1=E, 2=S, 3=W)

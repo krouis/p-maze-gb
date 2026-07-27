@@ -160,6 +160,17 @@ MainLoop:
 PrepareLevel:
     call LCD_Disable
 
+    ; 0. Reset input-repeat tracking. HandleMovementInput is only called from
+    ; PlayLevel, never from CompleteLevel, so whatever direction/timer state
+    ; existed at the exact moment the previous level was won would otherwise
+    ; sit frozen through the celebration and carry into this level -- e.g. a
+    ; still-held D-pad direction from finishing the last level would be
+    ; treated as "already repeating" instead of a fresh press.
+    xor a
+    ld [wInputLastDir], a
+    ld [wInputRepeatTimer], a
+    ld [wInputRepeatActive], a
+
     ; 1. Clear VRAM
     ld hl, $8000
     ld bc, $2000

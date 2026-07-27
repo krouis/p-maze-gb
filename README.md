@@ -106,12 +106,6 @@ working in the codebase.
   tests (SameBoy and binjgb) that solve real generated mazes and drive them
   via simulated D-pad input, including a 20-level endurance run.
 - Audio is not implemented yet.
-- The maze exit is consistently placed only 2-3 cells from the start
-  regardless of maze size, including at the 9x8 maximum size — the "farthest
-  reachable cell" distance-propagation logic in `maze_generate.asm` doesn't
-  appear to pick a genuinely distant cell. Mazes are still always solvable
-  and the exit always differs from the start; this is a maze-quality issue,
-  not a correctness/hang risk.
 - Test coverage still uses a single fixed seed; broader property-based maze
   tests (connectivity/solvability across many random seeds) and
   screenshot-based visual regression tests don't exist yet.

@@ -15,10 +15,10 @@ set -eu
 echo "=== Verifying Container Toolchain and Emulator Environment ==="
 
 # 1. Check RGBDS
-echo -n "rgbasm: " && rgbasm --version
-echo -n "rgblink: " && rgblink --version
-echo -n "rgbfix: " && rgbfix --version
-echo -n "rgbgfx: " && rgbgfx --version
+printf '%s' "rgbasm: " && rgbasm --version
+printf '%s' "rgblink: " && rgblink --version
+printf '%s' "rgbfix: " && rgbfix --version
+printf '%s' "rgbgfx: " && rgbgfx --version
 
 # 2. Check head-less SameBoy tester
 if command -v sameboy_tester >/dev/null 2>&1; then
@@ -37,14 +37,14 @@ else
 fi
 
 # 4. Check actionlint
-echo -n "actionlint: " && actionlint --version | head -n 1
+printf '%s' "actionlint: " && actionlint --version | head -n 1
 
 # 5. Check shellcheck
-echo -n "shellcheck: " && shellcheck --version | grep "version:"
+printf '%s' "shellcheck: " && shellcheck --version | grep "version:"
 
 # 6. Check Python environment
-echo -n "python3: " && python3 --version
-echo -n "pytest: " && pytest --version | head -n 1
+printf '%s' "python3: " && python3 --version
+printf '%s' "pytest: " && pytest --version | head -n 1
 
 echo "Verifying Python packages PIL and numpy..."
 python3 -c "import PIL; import numpy; print('PIL version:', PIL.__version__, 'numpy version:', numpy.__version__)"

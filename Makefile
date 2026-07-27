@@ -58,11 +58,12 @@ test-gameplay:
 reproducible:
 	$(MAKE) clean
 	$(MAKE) all
-	@sha256sum build/p-maze-gb.gb > build/hash1.sha
+	@sha256sum build/p-maze-gb.gb | cut -d' ' -f1 > /tmp/p-maze-gb-hash1.txt
 	$(MAKE) clean
 	$(MAKE) all
-	@sha256sum build/p-maze-gb.gb > build/hash2.sha
-	@diff build/hash1.sha build/hash2.sha && echo "ROM build is 100% reproducible!"
+	@sha256sum build/p-maze-gb.gb | cut -d' ' -f1 > /tmp/p-maze-gb-hash2.txt
+	@diff /tmp/p-maze-gb-hash1.txt /tmp/p-maze-gb-hash2.txt && echo "ROM build is 100% reproducible!"
+	@rm -f /tmp/p-maze-gb-hash1.txt /tmp/p-maze-gb-hash2.txt
 
 release: all
 	@mkdir -p release

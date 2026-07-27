@@ -115,7 +115,8 @@ def test_maze_gameplay():
     lib.GB_write_memory.argtypes = [ctypes.c_void_p, ctypes.c_uint16, ctypes.c_uint8]
     lib.GB_set_key_state.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_bool]
     lib.GB_set_pixels_output.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
-    
+    lib.GB_set_emulate_joypad_bouncing.argtypes = [ctypes.c_void_p, ctypes.c_bool]
+
     libc.malloc.argtypes = [ctypes.c_size_t]
     libc.malloc.restype = ctypes.c_void_p
     libc.free.argtypes = [ctypes.c_void_p]
@@ -131,7 +132,12 @@ def test_maze_gameplay():
     
     lib.GB_init(gb, model_cgb)
     lib.GB_set_pixels_output(gb, screen_buffer)
-    
+    # SameBoy's mechanical-contact-bounce simulation is on by default and can
+    # drop a single-frame button press depending on exact frame alignment --
+    # incompatible with deterministic input injection, and indistinguishable
+    # from a real collision/logic bug when a move doesn't register.
+    lib.GB_set_emulate_joypad_bouncing(gb, False)
+
     # Load ROM
     ret = lib.GB_load_rom(gb, b"build/p-maze-gb.gb")
     assert ret == 0

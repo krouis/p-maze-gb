@@ -20,7 +20,7 @@ NUM_LEVELS = 20
 
 # Bounded timeouts so a real regression fails fast instead of hanging forever.
 TITLE_BOOT_FRAMES = 60
-LEVEL_GENERATE_TIMEOUT_FRAMES = 120
+LEVEL_GENERATE_TIMEOUT_FRAMES = 300  # 9x8 (max size) DFS carving genuinely takes ~124 frames
 LEVEL_COMPLETE_TIMEOUT_FRAMES = 60
 FRAMES_PER_MOVE = 10
 
